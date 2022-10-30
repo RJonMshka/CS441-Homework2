@@ -69,9 +69,10 @@ object LogProcessorGRPCServer {
 
       val httpserverResponseFutureTuple = LogProcessorGRPCRestClient.processHttpRequest(date, time, interval)
 
-      val result = Await.result(httpserverResponseFutureTuple._1, FiniteDuration(config.getInt("timeoutInSeconds"), config.getString("secondsText")))
+      val response = Await.result(httpserverResponseFutureTuple._1, FiniteDuration(config.getInt("timeoutInSeconds"), config.getString("secondsText")))
+      val status = Await.result(httpserverResponseFutureTuple._2, FiniteDuration(config.getInt("timeoutInSeconds"), config.getString("secondsText")))
 
-      val reply = LogProcessorReply(result)
+      val reply = LogProcessorReply(response, status.intValue)
       Future.successful(reply)
     }
   }

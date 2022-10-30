@@ -49,7 +49,7 @@ object LogProcessorGRPCClient {
 
     resultsFuture onComplete {
       case Success(value) =>
-        logger.info(s"GRPC Server Response: ${value.response}, with status code: ${value.statusCode}")
+        logger.info(s"GRPC Server Response: ${value.response}, with status code: ${value.statusCode.intValue}")
         grpcClient.shutdown()
       case Failure(exception) =>
         logger.error(exception.getMessage)
