@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package com.grpcLogProcessor.protos;
+
+message LogProcessorRequest {
+  string date = 1;
+  string time = 2;
+  int32 interval = 3;
+}
+
+message LogProcessorReply {
+  string response = 1;
+  int32 statusCode = 2;
+}
+
+service LogProcessService {
+  rpc ProcessLogs (LogProcessorRequest) returns (LogProcessorReply) {}
+}
