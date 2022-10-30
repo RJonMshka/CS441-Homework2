@@ -18,6 +18,7 @@
       <excludeFolder url="file://$MODULE_DIR$/../../target/task-temp-directory" />
       <excludeFolder url="file://$MODULE_DIR$/../../target/bg-jobs" />
       <excludeFolder url="file://$MODULE_DIR$/../../target/protobuf_external" />
+      <excludeFolder url="file://$MODULE_DIR$/../../target/test-reports" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />

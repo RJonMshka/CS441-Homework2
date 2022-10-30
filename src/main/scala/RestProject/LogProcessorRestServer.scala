@@ -15,36 +15,46 @@ import scala.concurrent.{Await, ExecutionContextExecutor, Future, Promise}
 import scala.concurrent.duration.Duration
 import scala.concurrent.duration.FiniteDuration
 
-
+/**
+ * Rest Server Logic Object
+ */
 object LogProcessorRestServer {
-
+  // configs
   val configReference: Config = ObtainConfigReference("rest") match {
     case Some(value) => value
     case None => throw new RuntimeException("Cannot obtain a reference to the config data.")
   }
   val config: Config = configReference.getConfig("rest")
   val logger: Logger = CreateLogger(classOf[LogProcessorRestServer.type])
-
+  // important Akka http imports
   implicit val system: ActorSystem = ActorSystem()
   implicit val materializer: ActorMaterializer = ActorMaterializer()
   private implicit val dispatcher: ExecutionContextExecutor = system.dispatcher
   private val port = config.getInt("port")
   private val host = config.getString("host")
 
+  // Returns rest server port
   def getServerPort: Int = port
 
+  /**
+   * Rejection handler for http requests
+   * @return - a RejectionHandler object
+   */
   def rejectionHandler: RejectionHandler =
     RejectionHandler.newBuilder()
       .handleNotFound { complete(StatusCodes.NotFound, "Log Message Not found")}
       .result()
 
+  /**
+   * This method starts the Rest Server when called
+   */
   def startServer(): Unit = {
 
     val dateText = config.getString("qParamDate")
     val timeText = config.getString("qParamTime")
     val intervalText = config.getString("qParamInterval")
 
-
+    // Rest Service - only one GET Route created, wrapped with Rejection handler
     val route = handleRejections(rejectionHandler) {
       get {
         parameters(dateText, timeText, intervalText) {
@@ -52,6 +62,7 @@ object LogProcessorRestServer {
             val request = sendRequest(createRequest(date, time, interval))
             val response = Await.result(request._1, FiniteDuration(config.getInt("timeoutInSeconds"), config.getString("secondsText")))
             val statusCode = Await.result(request._2, FiniteDuration(config.getInt("timeoutInSeconds"), config.getString("secondsText")))
+            // returns status code and response
             complete(statusCode, response)
           }
         }
@@ -69,10 +80,18 @@ object LogProcessorRestServer {
         .onComplete(_ => system.terminate())
     }
 
+    // keeps the program from exiting
     Await.ready(doneFuture, Duration.Inf)
 
   }
 
+  /**
+   * This method creates Http Request given parameters
+   * @param date - date to process
+   * @param time - time to process
+   * @param interval - interval is seconds to process
+   * @return an Http request
+   */
   def createRequest(date: String, time: String, interval: String): HttpRequest = {
     val uri = config.getString("awsApiGatewayUri")
     val dateText = config.getString("qParamDate")
@@ -84,6 +103,11 @@ object LogProcessorRestServer {
     )
   }
 
+  /**
+   * This method sends http request to an endpoint
+   * @param request - http request to send
+   * @return - Tuple2 - (Future of response string and Future of StatusCode)
+   */
   def sendRequest(request: HttpRequest): (Future[String], Future[StatusCode]) = {
     val responseFuture = Http().singleRequest {
       request
@@ -99,6 +123,10 @@ object LogProcessorRestServer {
 
   }
 
+  /**
+   * Main entry point for Rest server to start
+   * @param args - default arguments passed from cli or run configs
+   */
   def main(args: Array[String]): Unit = {
     LogProcessorRestServer.startServer()
   }

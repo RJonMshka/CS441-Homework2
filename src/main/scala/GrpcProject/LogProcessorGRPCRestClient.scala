@@ -11,6 +11,10 @@ import org.slf4j.Logger
 import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
 
+/**
+ * Object for Rest Client that interacts with API gateway
+ * This client was meant to be used by GRPC Server in order to interact with API Gateway
+ */
 object LogProcessorGRPCRestClient {
 
   val configReference: Config = ObtainConfigReference("rest") match {
@@ -24,11 +28,25 @@ object LogProcessorGRPCRestClient {
   implicit val materializer: ActorMaterializer = ActorMaterializer()
   import system.dispatcher
 
+  /**
+   * Processes HTTP Request - creates request and send it to aws api gateway endpoint
+   * @param date - date to process
+   * @param time - time to process
+   * @param interval - interval is seconds to process
+   * @return A Tuple2 of Futures, one for response string and other for status code
+   */
   def processHttpRequest(date: String, time: String, interval: Int): (Future[String], Future[StatusCode]) = {
     val request = createRequest(date, time, interval)
     sendRequest(request)
   }
 
+  /**
+   * This method creates HTTP request given all the input parameters
+   * @param date - date to process
+   * @param time - time to process
+   * @param interval - interval is seconds to process
+   * @return an HTTP Request ready to be sent
+   */
   def createRequest(date: String, time: String, interval: Int): HttpRequest = {
     val uri = config.getString("awsApiGatewayUri")
     val dateText = config.getString("qParamDate")
@@ -40,6 +58,11 @@ object LogProcessorGRPCRestClient {
     )
   }
 
+  /**
+   * Sends the http request
+   * @param request - http request to send
+   * @return A Tuple2 of Futures, one for response string and other for status code
+   */
   def sendRequest(request: HttpRequest): (Future[String], Future[StatusCode]) = {
     val responseFuture = Http().singleRequest {
       request
