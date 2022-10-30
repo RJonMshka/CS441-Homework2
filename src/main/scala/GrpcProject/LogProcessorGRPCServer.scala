@@ -1,8 +1,8 @@
 package GrpcProject
 
-import HelperUtils.CreateLogger
+import HelperUtils.{CreateLogger, ObtainConfigReference}
 import com.grpcLogProcessor.protos.LogProcessor.{LogProcessServiceGrpc, LogProcessorReply, LogProcessorRequest}
-import com.typesafe.config.{Config, ConfigFactory}
+import com.typesafe.config.Config
 import io.grpc.Server
 import io.grpc.netty.NettyServerBuilder
 import org.slf4j.Logger
@@ -12,10 +12,14 @@ import scala.concurrent.{Await, ExecutionContext, Future}
 
 object LogProcessorGRPCServer {
 
-  val configReference: Config = ConfigFactory.load().getConfig("grpc")
+  val configReference: Config = ObtainConfigReference("grpc") match {
+    case Some(value) => value
+    case None => throw new RuntimeException("Cannot obtain a reference to the config data.")
+  }
+  val config: Config = configReference.getConfig("grpc")
   val logger: Logger = CreateLogger(classOf[LogProcessorGRPCServer.type])
 
-  private val port = configReference.getInt("port")
+  private val port = config.getInt("port")
 
   def getServerPort: Int = port
 
@@ -65,7 +69,7 @@ object LogProcessorGRPCServer {
 
       val httpserverResponseFutureTuple = LogProcessorGRPCRestClient.processHttpRequest(date, time, interval)
 
-      val result = Await.result(httpserverResponseFutureTuple._1, FiniteDuration(configReference.getInt("timeoutInSeconds"), configReference.getString("secondsText")))
+      val result = Await.result(httpserverResponseFutureTuple._1, FiniteDuration(config.getInt("timeoutInSeconds"), config.getString("secondsText")))
 
       val reply = LogProcessorReply(result)
       Future.successful(reply)

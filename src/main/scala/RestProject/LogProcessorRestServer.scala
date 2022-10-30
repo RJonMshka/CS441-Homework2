@@ -1,6 +1,6 @@
 package RestProject
 
-import HelperUtils.CreateLogger
+import HelperUtils.{CreateLogger, ObtainConfigReference}
 import akka.Done
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
@@ -8,37 +8,41 @@ import akka.stream.ActorMaterializer
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.RejectionHandler
-import com.typesafe.config.ConfigFactory
+import com.typesafe.config.Config
+import org.slf4j.Logger
 
 import scala.concurrent.{Await, ExecutionContextExecutor, Future, Promise}
 import scala.concurrent.duration.Duration
 import scala.concurrent.duration.FiniteDuration
-import scala.util.{Failure, Success}
 
 
 object LogProcessorRestServer {
 
-  val configReference = ConfigFactory.load().getConfig("rest")
-  val logger = CreateLogger(classOf[LogProcessorRestServer.type])
+  val configReference: Config = ObtainConfigReference("rest") match {
+    case Some(value) => value
+    case None => throw new RuntimeException("Cannot obtain a reference to the config data.")
+  }
+  val config: Config = configReference.getConfig("rest")
+  val logger: Logger = CreateLogger(classOf[LogProcessorRestServer.type])
 
-  implicit val system = ActorSystem()
-  implicit val materializer = ActorMaterializer()
+  implicit val system: ActorSystem = ActorSystem()
+  implicit val materializer: ActorMaterializer = ActorMaterializer()
   private implicit val dispatcher: ExecutionContextExecutor = system.dispatcher
-  private val port = configReference.getInt("port")
-  private val host = configReference.getString("host")
+  private val port = config.getInt("port")
+  private val host = config.getString("host")
 
-  def getServerPort(): Int = port
+  def getServerPort: Int = port
 
-  def rejectionHandler =
+  def rejectionHandler: RejectionHandler =
     RejectionHandler.newBuilder()
       .handleNotFound { complete(StatusCodes.NotFound, "Log Message Not found")}
       .result()
 
   def startServer(): Unit = {
 
-    val dateText = configReference.getString("qParamDate")
-    val timeText = configReference.getString("qParamTime")
-    val intervalText = configReference.getString("qParamInterval")
+    val dateText = config.getString("qParamDate")
+    val timeText = config.getString("qParamTime")
+    val intervalText = config.getString("qParamInterval")
 
 
     val route = handleRejections(rejectionHandler) {
@@ -46,38 +50,37 @@ object LogProcessorRestServer {
         parameters(dateText, timeText, intervalText) {
           (date, time, interval) => {
             val request = sendRequest(createRequest(date, time, interval))
-            val response = Await.result(request._1, FiniteDuration(configReference.getInt("timeoutInSeconds"), configReference.getString("secondsText")))
-            val statusCode = Await.result(request._2, FiniteDuration(configReference.getInt("timeoutInSeconds"), configReference.getString("secondsText")))
+            val response = Await.result(request._1, FiniteDuration(config.getInt("timeoutInSeconds"), config.getString("secondsText")))
+            val statusCode = Await.result(request._2, FiniteDuration(config.getInt("timeoutInSeconds"), config.getString("secondsText")))
             complete(statusCode, response)
           }
         }
       }
     }
 
-    val futures = for { bindingFuture <- Http().bindAndHandle(route, host, port)
-                  waitOnFuture  <- Promise[Done].future }
-    yield (bindingFuture, waitOnFuture)
+    val bindingFuture = Http().bindAndHandle(route, host, port)
+    val doneFuture = Promise[Done].future
 
-    logger.info("Server started ...")
+    logger.info(s"Server started at port $port")
 
     sys.addShutdownHook{
-      futures
-        .flatMap(_._1.unbind())
+      bindingFuture
+        .flatMap(_.unbind())
         .onComplete(_ => system.terminate())
     }
 
-    Await.ready(futures, Duration.Inf)
+    Await.ready(doneFuture, Duration.Inf)
 
   }
 
   def createRequest(date: String, time: String, interval: String): HttpRequest = {
-    val uri = configReference.getString("awsApiGatewayUri")
-    val dateText = configReference.getString("qParamDate")
-    val timeText = configReference.getString("qParamTime")
-    val intervalText = configReference.getString("qParamInterval")
+    val uri = config.getString("awsApiGatewayUri")
+    val dateText = config.getString("qParamDate")
+    val timeText = config.getString("qParamTime")
+    val intervalText = config.getString("qParamInterval")
     HttpRequest(
       method = HttpMethods.GET,
-      uri = s"${uri}?${dateText}=${date}&${timeText}=${time}&${intervalText}=${interval}"
+      uri = s"$uri?$dateText=$date&$timeText=$time&$intervalText=$interval"
     )
   }
 
@@ -87,7 +90,7 @@ object LogProcessorRestServer {
     }
 
     val futureData =  responseFuture
-      .flatMap(_.entity.toStrict(timeout = FiniteDuration.apply(configReference.getInt("timeoutInSeconds"), configReference.getString("secondsText"))))
+      .flatMap(_.entity.toStrict(timeout = FiniteDuration.apply(config.getInt("timeoutInSeconds"), config.getString("secondsText"))))
       .map(_.data.utf8String)
 
     val futureStatusCode = responseFuture.map(_.status)

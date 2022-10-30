@@ -1,14 +1,23 @@
 import GrpcProject.{LogProcessorGRPCRestClient, LogProcessorGRPCServer}
+import HelperUtils.ObtainConfigReference
 import RestProject.{LogProcessorRestClient, LogProcessorRestServer}
 import akka.http.scaladsl.model.HttpMethods
-import com.typesafe.config.{Config, ConfigFactory}
+import com.typesafe.config.Config
 import org.scalatest.funspec.AnyFunSpec
 import org.scalatest.matchers.should.Matchers._
 
-class GRPCandRestClientTest extends AnyFunSpec {
+class GRPCAndRestClientTest extends AnyFunSpec {
+  val grpcConfigReference: Config = ObtainConfigReference("grpc") match {
+    case Some(value) => value
+    case None => throw new RuntimeException("Cannot obtain a reference to the config data.")
+  }
+  val restConfigReference: Config = ObtainConfigReference("rest") match {
+    case Some(value) => value
+    case None => throw new RuntimeException("Cannot obtain a reference to the config data.")
+  }
 
-  val grpcConfigReference: Config = ConfigFactory.load().getConfig("grpc")
-  val restConfigReference: Config = ConfigFactory.load().getConfig("rest")
+  val grpcConfig: Config = grpcConfigReference.getConfig("grpc")
+  val restConfig: Config = restConfigReference.getConfig("rest")
 
   describe("Testing of gRPC and its HTTP Akka Client object") {
 
@@ -27,12 +36,12 @@ class GRPCandRestClientTest extends AnyFunSpec {
       val time2 = "17:00:45.190"
       val interval2 = 20
 
-      val apiUri = restConfigReference.getString("awsApiGatewayUri")
-      val dateText = restConfigReference.getString("qParamDate")
-      val timeText = restConfigReference.getString("qParamTime")
-      val intervalText = restConfigReference.getString("qParamInterval")
+      val apiUri = restConfig.getString("awsApiGatewayUri")
+      val dateText = restConfig.getString("qParamDate")
+      val timeText = restConfig.getString("qParamTime")
+      val intervalText = restConfig.getString("qParamInterval")
 
-      val uri = s"${apiUri}?${dateText}=${date2}&${timeText}=${time2}&${intervalText}=${interval2}"
+      val uri = s"$apiUri?$dateText=$date2&$timeText=$time2&$intervalText=$interval2"
 
       val request = LogProcessorGRPCRestClient.createRequest(date2, time2, interval2)
 
@@ -40,9 +49,9 @@ class GRPCandRestClientTest extends AnyFunSpec {
     }
 
     it("should match the right port for grpc server") {
-      val port = grpcConfigReference.getInt("port")
+      val port = grpcConfig.getInt("port")
 
-      val grpcServerPort = LogProcessorGRPCServer.getServerPort()
+      val grpcServerPort = LogProcessorGRPCServer.getServerPort
 
       grpcServerPort shouldBe port
     }
@@ -57,7 +66,7 @@ class GRPCandRestClientTest extends AnyFunSpec {
 
       val request = LogProcessorRestClient.createRequest(date3, time3, interval3)
 
-      request.method should be equals HttpMethods.GET
+      request.method shouldBe HttpMethods.GET
     }
 
     it("Should return an httpRequest with the provided rest server URI") {
@@ -65,12 +74,12 @@ class GRPCandRestClientTest extends AnyFunSpec {
       val time4 = "17:00:45.190"
       val interval4 = 20
 
-      val apiUri = restConfigReference.getString("serverUri")
-      val dateText = restConfigReference.getString("qParamDate")
-      val timeText = restConfigReference.getString("qParamTime")
-      val intervalText = restConfigReference.getString("qParamInterval")
+      val apiUri = restConfig.getString("serverUri")
+      val dateText = restConfig.getString("qParamDate")
+      val timeText = restConfig.getString("qParamTime")
+      val intervalText = restConfig.getString("qParamInterval")
 
-      val uri = s"${apiUri}?${dateText}=${date4}&${timeText}=${time4}&${intervalText}=${interval4}"
+      val uri = s"$apiUri?$dateText=$date4&$timeText=$time4&$intervalText=$interval4"
 
       val request = LogProcessorRestClient.createRequest(date4, time4, interval4)
 
@@ -78,9 +87,9 @@ class GRPCandRestClientTest extends AnyFunSpec {
     }
 
     it("Should match the right port for rest server") {
-      val port = restConfigReference.getInt("port")
+      val port = restConfig.getInt("port")
 
-      val restServerPort = LogProcessorRestServer.getServerPort()
+      val restServerPort = LogProcessorRestServer.getServerPort
 
       restServerPort shouldBe port
     }
@@ -90,12 +99,12 @@ class GRPCandRestClientTest extends AnyFunSpec {
       val time5 = "17:00:45.190"
       val interval5 = 20
 
-      val apiUri = restConfigReference.getString("awsApiGatewayUri")
-      val dateText = restConfigReference.getString("qParamDate")
-      val timeText = restConfigReference.getString("qParamTime")
-      val intervalText = restConfigReference.getString("qParamInterval")
+      val apiUri = restConfig.getString("awsApiGatewayUri")
+      val dateText = restConfig.getString("qParamDate")
+      val timeText = restConfig.getString("qParamTime")
+      val intervalText = restConfig.getString("qParamInterval")
 
-      val uri = s"${apiUri}?${dateText}=${date5}&${timeText}=${time5}&${intervalText}=${interval5}"
+      val uri = s"$apiUri?$dateText=$date5&$timeText=$time5&$intervalText=$interval5"
 
       val request = LogProcessorRestServer.createRequest(date5, time5, interval5.toString)
 

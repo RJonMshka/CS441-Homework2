@@ -1,11 +1,11 @@
 package RestProject
 
-import HelperUtils.CreateLogger
+import HelperUtils.{CreateLogger, ObtainConfigReference}
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.{HttpMethods, HttpRequest}
 import akka.stream.ActorMaterializer
-import com.typesafe.config.{Config, ConfigFactory}
+import com.typesafe.config.Config
 import org.slf4j.Logger
 
 import scala.concurrent.duration.{Duration, FiniteDuration}
@@ -14,7 +14,11 @@ import scala.util.{Failure, Success}
 
 object LogProcessorRestClient {
 
-  val configReference: Config = ConfigFactory.load().getConfig("rest")
+  val configReference: Config = ObtainConfigReference("rest") match {
+    case Some(value) => value
+    case None => throw new RuntimeException("Cannot obtain a reference to the config data.")
+  }
+  val config: Config = configReference.getConfig("rest")
   val logger: Logger = CreateLogger(classOf[LogProcessorRestClient.type])
 
   implicit val system: ActorSystem = ActorSystem()
@@ -27,10 +31,10 @@ object LogProcessorRestClient {
   }
 
   def createRequest(date: String, time: String, interval: Int): HttpRequest = {
-    val uri = configReference.getString("serverUri")
-    val dateText = configReference.getString("qParamDate")
-    val timeText = configReference.getString("qParamTime")
-    val intervalText = configReference.getString("qParamInterval")
+    val uri = config.getString("serverUri")
+    val dateText = config.getString("qParamDate")
+    val timeText = config.getString("qParamTime")
+    val intervalText = config.getString("qParamInterval")
     HttpRequest(
       method = HttpMethods.GET,
       uri = s"$uri?$dateText=$date&$timeText=$time&$intervalText=$interval"
@@ -44,15 +48,15 @@ object LogProcessorRestClient {
     }
 
     responseFuture
-      .flatMap(_.entity.toStrict(timeout = FiniteDuration.apply(configReference.getInt("timeoutInSeconds"), configReference.getString("secondsText"))))
+      .flatMap(_.entity.toStrict(timeout = FiniteDuration.apply(config.getInt("timeoutInSeconds"), config.getString("secondsText"))))
       .map(_.data.utf8String)
   }
 
   def main(args: Array[String]): Unit = {
     val responseFuture = LogProcessorRestClient.processHttpRequest(
-      configReference.getString("dateToProcess"),
-      configReference.getString("timeToProcess"),
-      configReference.getInt("intervalToProcessInSeconds"))
+      config.getString("dateToProcess"),
+      config.getString("timeToProcess"),
+      config.getInt("intervalToProcessInSeconds"))
 
     responseFuture onComplete {
       case Success(value) => logger.info(value)

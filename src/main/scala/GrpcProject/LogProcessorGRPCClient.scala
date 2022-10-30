@@ -1,9 +1,9 @@
 package GrpcProject
 
-import HelperUtils.CreateLogger
-import com.grpcLogProcessor.protos.LogProcessor.{LogProcessServiceGrpc, LogProcessorReply, LogProcessorRequest}
+import HelperUtils.{CreateLogger, ObtainConfigReference}
 import com.grpcLogProcessor.protos.LogProcessor.LogProcessServiceGrpc.LogProcessServiceStub
-import com.typesafe.config.{Config, ConfigFactory}
+import com.grpcLogProcessor.protos.LogProcessor.{LogProcessServiceGrpc, LogProcessorReply, LogProcessorRequest}
+import com.typesafe.config.Config
 import io.grpc.{ManagedChannel, ManagedChannelBuilder}
 import org.slf4j.Logger
 
@@ -14,7 +14,11 @@ import scala.util.{Failure, Success}
 
 object LogProcessorGRPCClient {
 
-  val configReference: Config = ConfigFactory.load().getConfig("grpc")
+  val configReference: Config = ObtainConfigReference("grpc") match {
+    case Some(value) => value
+    case None => throw new RuntimeException("Cannot obtain a reference to the config data.")
+  }
+  val config: Config = configReference.getConfig("grpc")
   val logger: Logger = CreateLogger(classOf[LogProcessorGRPCClient.type])
 
   def apply(host: String, port: Int): LogProcessorGRPCClient = {
@@ -40,8 +44,8 @@ object LogProcessorGRPCClient {
   }
 
   def main(args: Array[String]): Unit = {
-    val grpcClient = LogProcessorGRPCClient(configReference.getString("host"), configReference.getInt("port"))
-    val resultsFuture = grpcClient.processLogs(configReference.getString("dateToProcess"), configReference.getString("timeToProcess"), configReference.getInt("intervalToProcessInSeconds"))
+    val grpcClient = LogProcessorGRPCClient(config.getString("host"), config.getInt("port"))
+    val resultsFuture = grpcClient.processLogs(config.getString("dateToProcess"), config.getString("timeToProcess"), config.getInt("intervalToProcessInSeconds"))
 
     resultsFuture onComplete {
       case Success(value) =>
