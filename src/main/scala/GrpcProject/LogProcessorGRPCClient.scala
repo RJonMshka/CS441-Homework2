@@ -32,6 +32,7 @@ object LogProcessorGRPCClient {
    * @return - reference to LogProcessorGRPCClient object
    */
   def apply(host: String, port: Int): LogProcessorGRPCClient = {
+    logger.info("building channel")
     val channelBuilder = ManagedChannelBuilder.forAddress(host, port)
     channelBuilder.usePlaintext()
     val channel = channelBuilder.build()
@@ -58,6 +59,7 @@ object LogProcessorGRPCClient {
      */
     def processLogs(date: String, time: String, interval: Int): Future[LogProcessorReply] = {
       val grpcRequest = LogProcessorRequest(date = date, time = time, interval = interval)
+      logger.info("processing logs...")
       stub.processLogs(grpcRequest)
     }
   }

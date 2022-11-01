@@ -104,11 +104,15 @@ object LogProcessorGRPCServer {
 
       // Transfers control to Akka HTTP Client to interact with API Gateway
       // which will in-turn return result from lambda function, which processes log files
+      logger.info("initiating http request")
       val httpserverResponseFutureTuple = LogProcessorGRPCRestClient.processHttpRequest(date, time, interval)
+
+      logger.info("processing logs")
 
       val response = Await.result(httpserverResponseFutureTuple._1, FiniteDuration(config.getInt("timeoutInSeconds"), config.getString("secondsText")))
       val status = Await.result(httpserverResponseFutureTuple._2, FiniteDuration(config.getInt("timeoutInSeconds"), config.getString("secondsText")))
 
+      logger.info("response received")
       val reply = LogProcessorReply(response, status.intValue)
       Future.successful(reply)
     }

@@ -38,6 +38,7 @@ object LogProcessorRestClient {
    */
   def processHttpRequest(date: String, time: String, interval: Int): Future[String] = {
     val request = createRequest(date, time, interval)
+    logger.info("processing http request")
     sendRequest(request)
   }
 
@@ -53,6 +54,7 @@ object LogProcessorRestClient {
     val dateText = config.getString("qParamDate")
     val timeText = config.getString("qParamTime")
     val intervalText = config.getString("qParamInterval")
+    logger.info("creating http request")
     HttpRequest(
       method = HttpMethods.GET,
       uri = s"$uri?$dateText=$date&$timeText=$time&$intervalText=$interval"
@@ -68,6 +70,8 @@ object LogProcessorRestClient {
     val responseFuture = Http().singleRequest {
       request
     }
+
+    logger.info("sending http request")
 
     responseFuture
       .flatMap(_.entity.toStrict(timeout = FiniteDuration.apply(config.getInt("timeoutInSeconds"), config.getString("secondsText"))))

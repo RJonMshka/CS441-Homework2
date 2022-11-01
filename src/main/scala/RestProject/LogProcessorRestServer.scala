@@ -62,6 +62,8 @@ object LogProcessorRestServer {
             val request = sendRequest(createRequest(date, time, interval))
             val response = Await.result(request._1, FiniteDuration(config.getInt("timeoutInSeconds"), config.getString("secondsText")))
             val statusCode = Await.result(request._2, FiniteDuration(config.getInt("timeoutInSeconds"), config.getString("secondsText")))
+
+            logger.info("http response received")
             // returns status code and response
             complete(statusCode, response)
           }
@@ -97,6 +99,7 @@ object LogProcessorRestServer {
     val dateText = config.getString("qParamDate")
     val timeText = config.getString("qParamTime")
     val intervalText = config.getString("qParamInterval")
+    logger.info("creating http request")
     HttpRequest(
       method = HttpMethods.GET,
       uri = s"$uri?$dateText=$date&$timeText=$time&$intervalText=$interval"
@@ -112,6 +115,7 @@ object LogProcessorRestServer {
     val responseFuture = Http().singleRequest {
       request
     }
+    logger.info("sending http request")
 
     val futureData =  responseFuture
       .flatMap(_.entity.toStrict(timeout = FiniteDuration.apply(config.getInt("timeoutInSeconds"), config.getString("secondsText"))))
