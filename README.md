@@ -78,6 +78,7 @@ Both the gRPC server and REST server interacts will AWS API gateway, by making a
 Now, this API gateway is added as a trigger for AWS Lambda function responsible for processing log files.
 
 **gRPC Setup**
+
 `src/main/scala/GrpcProject/LogProcessorGRPCServer.scala` starts the gRPC server.
 `src/main/scala/GrpcProject/LogProcessorGRPCClient.scala` is the gRPC client program that performs an RPC. The server listens to it and when the request is received, it is passed to Akka HTTP client.
 The Akka HTTP client that interacts with AWS API Gateway is `src/main/scala/GrpcProject/LogProcessorGRPCRestClient.scala`. Once, gRPC server receives a request, the server calls this client which in turn makes an HTTP call to AWS API Gateway.
@@ -102,12 +103,14 @@ The LogProcessorRequest (request) consists of date, time and interval. The LogPr
 
 
 **REST Setup**
+
 `src/main/scala/RestProject/LogProcessorRestServer.scala` starts the REST server.
 `src/main/scala/RestProject/LogProcessorRestClient.scala` is the REST client program that performs an HTTP call to REST Server. The server listens to it and when the request is received, it creates another HTTP request to API gateway.
 The response from API Gateway is received by REST Server which gives it back to REST client using response.
 The REST server can also be tested using http clients like `Postman` using a call such as this `localhost:8080/processLogs?date=2022-10-30&time=17:58:52.345&interval=10`.
 
 **LogFileGenerator**
+
 The usual log file generator, after successfully generating the log files, it makes a `hashtable` file in the below format.
 ```
 2022-10-28->14:27:37.234|14:27:40.031|log/LogFileGenerator.2022-10-28.1.log,14:27:22.436|14:27:37.189|log/LogFileGenerator.2022-10-28.0.log,
@@ -148,5 +151,19 @@ This is how, it performs log processing:
 11. If no log is found after filtering, MD5 hash is not done, but instead another 404 message is passed back to source of request.
 12. The successful result hashed with MD5 is then returned with 200 status code.
 
+---
+
+### Resources:
+1. Install Java on Ubuntu -  https://www.digitalocean.com/community/tutorials/how-to-install-java-with-apt-on-ubuntu-18-04
+2. Install Scala and Sbt on Ubuntu - https://stackoverflow.com/questions/13711395/install-sbt-on-ubuntu
+3. Connect to EC2 using SSH - https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/AccessingInstancesLinux.html
+4. gRPC - https://grpc.io/
+5. Scalapb - protobuf compiler for Scala - https://scalapb.github.io/
+6. Implementing Akka HTTP Server API - https://doc.akka.io/docs/akka-http/current/server-side/index.html
+7. Implementing Akka HTTP Client API - https://doc.akka.io/docs/akka-http/current/client-side/index.html
+8. AWS documentation - https://docs.aws.amazon.com/
+
+
+---
 The code is pretty clean and self-explanatory, however I have added useful comments to make it even more clear and readable.
 That's it for this project. Have fun.
