@@ -129,7 +129,8 @@ Same goes for other lines as well.
 This hashtable file along with the log files in uploaded to Amazon S3 bucket.
 
 
-** AWS Lambda**
+**AWS Lambda**
+
 The AWS lambda code is present in this `https://github.com/RJonMshka/CS441-HW2-AWSLambda` repository.
 
 The lambda function is responsible for processing log data in S3 bucket.
